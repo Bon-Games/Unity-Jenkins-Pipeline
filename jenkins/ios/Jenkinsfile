@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        BUILD_SCRIPT_PATH   = 'BuildCICD/build-main.sh'
+        ENV_SCRIPT_PATH     = 'BuildCICD/env.sh'
+        BUILD_TARGET        = 'iOS'
+        SCM_CREDENTIALS_ID  = 'id_indigames'
+        BUILD_DESTINATION   = "${WORKSPACE}/Build/${BUILD_NUMBER}"
+    }
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['Development', 'Staging', 'Release', 'Distribution'], description: 'Select the environment for the build')
+    }
+
+    stages {
+        stage('General') {
+            steps {
+                echo "Current workspace: ${pwd()}"
+            }
+        }
+        stage('Git SCM') {
+            steps {
+                sshagent(credentials: ["${SCM_CREDENTIALS_ID}"]) {
+                    // Check out the code using the SSH credentials
+                    checkout scm
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                sh """
+                    chmod +x ${BUILD_SCRIPT_PATH}
+                    BUILD_DESTINATION=${BUILD_DESTINATION} ${BUILD_SCRIPT_PATH} ${BUILD_TARGET} ${ENVIRONMENT} ${BUILD_NUMBER}
+                """
+            }
+        }
+        stage('Upload') {
+            steps {
+                echo "Uploading build artifacts for ${ENVIRONMENT} environment."
+            }
+        }
+    }
+    // post {
+    //     always {
+    //         // archiveArtifacts artifacts: "Build/${BUILD_NUMBER}/*.apk, Build/${BUILD_NUMBER}/*.aab, Build/${BUILD_NUMBER}/*.symbol, Build/${BUILD_NUMBER}/*.ipa, Build/${BUILD_NUMBER}/*.zip", fingerprint: true
+    //     }
+    // }
+}

@@ -1,0 +1,7 @@
+# Exclude/Ingore
+*.env.*
+*.exportOptions.plist.*
+
+# Include
+!**/.exportOptions.plist.template
+!**/.env.template
