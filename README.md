@@ -1,7 +1,7 @@
 # Unity-Jenkins-Pipeline
 - Jenkins pipeline for a Unity Project
 
-# Dependencies:
+## Dependencies
 - [Bon Games Build Tools](https://github.com/Bon-Games/Build-Tools)
 
 # Features
