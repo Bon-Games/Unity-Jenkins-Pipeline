@@ -44,10 +44,6 @@ lookup_dir() {
     find "$rootFolder" -type d -name "$fileName" -print -quit
 }
 
-printenv
-# Export the environment variables to temporally file, which helpful in some case
-# E.g: load the file from Jenkinsfile
-printenv > ./.env.temp
 
 SIGN_OPTIONS='-allowProvisioningUpdates'
 
@@ -68,6 +64,7 @@ else
     echo "Your're using Automatic Sign"
 fi
 
+
 # Lookup workspace file
 XCODE_FILE=$(lookup_dir $XCODE_PROJECT_DIR "Unity-iPhone.xcworkspace")
 if [[ ! -z $XCODE_FILE ]]; then
@@ -78,10 +75,15 @@ else
 fi
 
 # Print build information
+echo "WORKSPACE: $WORKSPACE"
+echo "XCODE_ARCHIVE_DIR: $XCODE_ARCHIVE_DIR"
+echo "ARCHIVE_PATH: $ARCHIVE_PATH"
+
 echo "Build Information"
 echo "Xcode File: ${XCODE_FILE}"
 echo "Xcode-Select: $(xcode-select --print-path)" 
 echo "Export options"
+
 cat $WORKSPACE/$IOS_EXPORT_OPTIONS
 xcodebuild -list $XCODE_FILE
 

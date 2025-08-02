@@ -1,7 +1,8 @@
-# Exclude/Ingore
-*.env.*
-*.exportOptions.plist.*
+# Log files
+**/*[L,l]og*
 
-# Include
-!**/.exportOptions.plist.template
-!**/.env.template
+# Local config files
+.ini
+
+# Temp files
+.env.temp

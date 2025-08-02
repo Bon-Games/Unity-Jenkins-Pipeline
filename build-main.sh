@@ -17,7 +17,6 @@ fi
 export SCRIPT_WORKSPACE
 
 # Predefined Environment variables
-source "$SCRIPT_WORKSPACE/args.sh" "$@"
 source "$SCRIPT_WORKSPACE/env.sh" $BUILD_ENVIRONMENT
 
 if [[ "$OSTYPE" == "darwin"* ]]; then

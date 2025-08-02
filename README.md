@@ -16,3 +16,13 @@
   - **Release** .env.release
   - **Distribution** .env.distribution
 - See all supported templates at [templates](https://github.com/Bon-Games/Unity-Jenkins-Pipeline/tree/master/templates)
+- See all supported variables at [Environment Variables](https://github.com/Bon-Games/Unity-Jenkins-Pipeline/tree/master/docs/EnvironmentVariables.md)
+
+# Cheat sheet
+## Requirements
+- Keep in mind, your're stading at BuildCICD/.. (1 directory up)
+- Use bash terminal or whatever can run shell script
+
+## To test build locally
+
+1. [Android] chmod +x ./build-and.sh && UNITY_EXECUTABLE="C:\Program Files\Unity\Hub\Editor\2022.3.50f1\Editor/Unity.exe" SCRIPT_WORKSPACE="." BUILD_APP=true DLC_DESTINATION="Build/DlcRoot" BUILD_DLC=true ./build-and.sh Development 1 > log.txt

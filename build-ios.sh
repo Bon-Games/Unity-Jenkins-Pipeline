@@ -5,10 +5,10 @@ BUILD_ENVIRONMENT=$2
 
 # Export Xcode Project
 chmod +x "${SCRIPT_WORKSPACE}/unity-build.sh"
-"${SCRIPT_WORKSPACE}/unity-build.sh" iOS $BUILD_ENVIRONMENT Client $BUILD_NUMBER
+"${SCRIPT_WORKSPACE}/unity-build.sh" iOS $BUILD_ENVIRONMENT Client $BUILD_NUMBER ios
 
-# Archive and Export IPA
-chmod +x "${SCRIPT_WORKSPACE}/build-ipa.sh"
-"${SCRIPT_WORKSPACE}/build-ipa.sh"
+# Archive and Export IPA >> Moved to JenkinsFile
+# chmod +x "${SCRIPT_WORKSPACE}/build-ipa.sh"
+# "${SCRIPT_WORKSPACE}/build-ipa.sh"
 
 exit $?

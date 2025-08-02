@@ -3,7 +3,7 @@ pipeline {
     environment {
 
         // Note: env vars declared here are **not overrideable** at runtime
-        BUILD_TARGET='Android'
+        // You must define BUILD_TARGET in env file       
     }
     
     parameters {
