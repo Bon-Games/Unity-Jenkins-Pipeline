@@ -3,7 +3,8 @@ pipeline {
     environment {
 
         // Note: env vars declared here are **not overrideable** at runtime
-        // You must define BUILD_TARGET in env file       
+        // You must define BUILD_TARGET in env file
+        NONE="Bypass error"       
     }
     
     parameters {
