@@ -24,7 +24,8 @@ pipeline {
                     
                     // Fix path for windonws 
                     def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
-
+                    sh 'find --version'
+                    sh 'head --version'
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
                     def envScript = sh(returnStdout: true, script: "find '${safeWorkspace}' -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
                     if (envScript) {
