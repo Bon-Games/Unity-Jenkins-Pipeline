@@ -4,6 +4,10 @@
 ## Dependencies
 - [Bon Games Build Tools](https://github.com/Bon-Games/Build-Tools)
 
+## Install
+1. Open Bash at Unity project root where Assets folder is located
+2. Run `bash <(curl -fsSL https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh)`
+
 # Features
 ## Support to build
 - Build Android
