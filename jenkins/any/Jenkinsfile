@@ -24,8 +24,10 @@ pipeline {
                     
                     // Fix path for windonws 
                     def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
-                    sh 'find --version'
-                    sh 'head --version'
+                    sh(returnStdout: true, script: "sh --version")
+                    sh(returnStdout: true, script: "head --version")
+                    sh(returnStdout: true, script: "find --version")
+
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
                     def envScript = sh(returnStdout: true, script: "find '${safeWorkspace}' -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
                     if (envScript) {
@@ -48,7 +50,7 @@ pipeline {
                         error "env.sh script not found in the workspace"
                     }
 
-                    echo "Start overriding environment variables"
+                    echo "Start overridding environment variables"
 
                     // Script paths
                     env.SCRIPT_WORKSPACE            = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
@@ -78,6 +80,8 @@ pipeline {
                 git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_URL
                 sh """
                     git lfs pull
+                    git submodule update --init --recursive
+                    git submodule foreach --recursive git log -1 --pretty=%B
                 """
             }
         }
