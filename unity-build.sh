@@ -13,9 +13,10 @@ echo "This script is executing on $OSTYPE with environment variables"
 printenv
 
 echo "Start build with params BUILD_TARGET:$BUILD_TARGET BUILD_NUMBER:$BUILD_NUMBER BUILD_ENVIRONMENT:$BUILD_ENVIRONMENT BUILD_APP_TARGET:$BUILD_APP_TARGET BUILD_TARGET_STARTUP:$BUILD_TARGET_STARTUP"
+echo "Project path: ${WORKSPACE}"
 
 exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET_STARTUP -executeMethod BonGames.EasyBuilder.EasyBuilder.Build \
--projectPath "${SCRIPT_WORKSPACE}/../" 	\
+-projectPath "${WORKSPACE}" 	\
 -logFile - 	\
 -productCode $PRODUCT_NAME_CODE \
 -ks "$KEYSTORE_PATH" -ksPassword "$KEYSTORE_PASSWORD" -alias "$KEYSTORE_ALIAS" -aliasPassword "$KEYSTORE_ALIAS_PASSWORD" \

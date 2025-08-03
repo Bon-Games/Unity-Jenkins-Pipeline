@@ -26,3 +26,8 @@
 ## To test build locally
 
 1. [Android] chmod +x ./build-and.sh && UNITY_EXECUTABLE="C:\Program Files\Unity\Hub\Editor\2022.3.50f1\Editor/Unity.exe" SCRIPT_WORKSPACE="." BUILD_APP=true DLC_DESTINATION="Build/DlcRoot" BUILD_DLC=true ./build-and.sh Development 1 > log.txt
+
+## Setup
+1. Navigate to Unity's Packages folder
+2. git clone git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
+2.1 Add submodule git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git in Packages folder
