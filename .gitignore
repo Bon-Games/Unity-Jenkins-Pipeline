@@ -6,3 +6,6 @@
 
 # Temp files
 .env.temp
+
+# Unity
+*.meta

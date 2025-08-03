@@ -26,7 +26,7 @@ pipeline {
                     def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
 
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
-                    def envScript = sh(returnStdout: true, script: "find ${WORKSPACE} -maxdepth 2 -type f -name 'env.sh' | head -n 1").trim()
+                    def envScript = sh(returnStdout: true, script: "find ${WORKSPACE} -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
                     if (envScript) {
                         
                         // Create temp env file at {safeWorkspace}/.env.temp
