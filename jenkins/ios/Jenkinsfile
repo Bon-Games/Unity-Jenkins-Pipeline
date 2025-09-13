@@ -1,16 +1,20 @@
 pipeline {
     agent any
+    options {
+        disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
+        skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
+    }
     environment {
 
         // Note: env vars declared here are **not overrideable** at runtime
-        BUILD_TARGET='iOS'       
+        BUILD_TARGET='iOS'
     }
     
     parameters {
         choice      (name: 'ENVIRONMENT'    , choices: ['Development', 'Staging', 'Release', 'Distribution'], description: 'Select the environment for the app build')
         booleanParam(name: 'BUILD_APP'      , defaultValue: true    , description: 'Do you want to make executable file (for example *.apk)? You could disable this for Build Dlc only.')
         booleanParam(name: 'BUILD_DLC'      , defaultValue: false   , description: 'Build and upload asset bundles to S3 after build')
-        string      (name: 'GIT_BRANCH_NAME', defaultValue: 'master'   , description: 'Git branch name to checkout')
+        string      (name: 'GIT_BRANCH_NAME', defaultValue: 'dev'   , description: 'Git branch name to checkout')
         booleanParam(name: 'DRY_RUN'        , defaultValue: false   , description: 'Do you want to run the build in dry run mode?')
     }
 
@@ -23,8 +27,9 @@ pipeline {
                     
                     // Fix path for windonws 
                     def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
-                    def envScript = sh(returnStdout: true, script: "find '${safeWorkspace}' -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
+                    def envScript = sh(returnStdout: true, script: "find ${WORKSPACE} -maxdepth 2 -type f -name 'env.sh' | head -n 1").trim()
                     if (envScript) {
                         
                         // Create temp env file at {safeWorkspace}/.env.temp
@@ -45,7 +50,7 @@ pipeline {
                         error "env.sh script not found in the workspace"
                     }
 
-                    echo "Start overridding environment variables"
+                    echo "Start overriding environment variables"
 
                     // Script paths
                     env.SCRIPT_WORKSPACE            = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
@@ -75,11 +80,10 @@ pipeline {
                 git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_URL
                 sh """
                     git lfs pull
-                    git submodule update --init --recursive
-                    git submodule foreach --recursive git log -1 --pretty=%B
                 """
             }
         }
+        
         stage('Build') {
 
             steps {
@@ -121,37 +125,43 @@ pipeline {
         success {
 
             script {
+                try {
+                    echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
 
-                if (params.BUILD_APP && !params.DRY_RUN) {
-                    
-                    archiveArtifacts artifacts: [
-                            "Build/${BUILD_NUMBER}/*.apk",
-                            "Build/${BUILD_NUMBER}/*.aab",
-                            "Build/${BUILD_NUMBER}/*.symbol",
-                            "Build/${BUILD_NUMBER}/*.ipa",
-                            "Build/${BUILD_NUMBER}/*.zip"
-                        ].join(', '), fingerprint: true, allowEmptyArchive: true
-                                            
-                    
-                    if (env.GDRIVE_FOLDER_ID) {
-                        sh """
-                            chmod +x ${env.GDRIVE_UPLOAD_SCRIPT_PATH}
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.apk"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.aab"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.symbol"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.ipa"
-                        """
+                    if (params.BUILD_APP && !params.DRY_RUN) {
+                        
+                        archiveArtifacts artifacts: [
+                                "Build/${BUILD_NUMBER}/*.apk",
+                                "Build/${BUILD_NUMBER}/*.aab",
+                                "Build/${BUILD_NUMBER}/*.symbol",
+                                "Build/${BUILD_NUMBER}/*.ipa",
+                                "Build/${BUILD_NUMBER}/*.zip"
+                            ].join(', '), fingerprint: true, allowEmptyArchive: true
+                                                
+                        
+                        if (env.GDRIVE_FOLDER_ID) {
+                            sh """
+                                chmod +x ${env.GDRIVE_UPLOAD_SCRIPT_PATH}
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.apk"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.aab"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.symbol"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.ipa"
+                            """
+                        }
+                    }
+
+                    if (params.BUILD_DLC && !params.DRY_RUN) {
+                        archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
                     }
                 }
-
-                if (params.BUILD_DLC && !params.DRY_RUN) {
-                    archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
+                catch (Exception e) {
+                    echo "Exception in post-success block: ${e.message}"
+                }
+                finally {
+                    echo "Deleting build folder ${env.BUILD_DESTINATION} .."
+                    sh "rm -rf ${env.BUILD_DESTINATION}"
                 }
             }
-        }
-
-        always {
-             echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
         }
     }
 }
