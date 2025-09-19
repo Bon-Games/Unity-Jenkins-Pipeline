@@ -1,0 +1,193 @@
+pipeline {
+    agent any
+    options {
+        disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
+        skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
+    }
+    environment {
+
+        // Note: env vars declared here are **not overrideable** at runtime
+        // You must define BUILD_TARGET in env file       
+    }
+    
+    parameters {
+        choice      (name: 'ENVIRONMENT'    , choices: ['Development', 'Staging', 'Release', 'Distribution'], description: 'Select the environment for the app build')
+        booleanParam(name: 'BUILD_APP'      , defaultValue: true     , description: 'Do you want to make executable file (for example *.apk)? You could disable this for Build Dlc only.')
+        booleanParam(name: 'BUILD_DLC'      , defaultValue: false    , description: 'Build and upload asset bundles to S3 after build')
+        string      (name: 'GIT_BRANCH_NAME', defaultValue: 'dev'    , description: 'Git branch name to checkout')
+        string      (name: 'VERSION'        , defaultValue: '0.104.0', description: 'Version string')
+        string      (name: 'RELEASE_ALIAS'  , defaultValue: 'beta'   , description: 'Release alias')
+        booleanParam(name: 'DRY_RUN'        , defaultValue: false    , description: 'Do you want to run the build in dry run mode?')
+    }
+
+    stages {
+        stage('General') {
+            steps {
+
+                echo "Current workspace: ${pwd()}"
+                script {
+                    
+                    // Fix path for windonws 
+                    def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+
+                    // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
+                    def envScript = sh(returnStdout: true, script: "find ${WORKSPACE} -maxdepth 2 -type f -name 'env.sh' | head -n 1").trim()
+                    if (envScript) {
+                        
+                        // Create temp env file at {safeWorkspace}/.env.temp
+                        sh """ 
+                            chmod +x "${envScript}" && WORKSPACE="${safeWorkspace}" "${envScript}" ${env.ENVIRONMENT}
+                        """
+
+                        // Override current environment variables with the ones from .env.temp
+                        def props = readProperties file: "${safeWorkspace}/.env.temp"
+                        props.each { key, value ->
+                            // IMPORTANT NOTE: Environment variables in Jenkins (in environment block above) are read-only, cannot be modified directly even set here.
+                            env."${key}" = value
+                            echo "Export Variable: ${key}=${value}"
+                        }
+                        echo "Reading enviroment variables completed from: ${safeWorkspace}/.env.temp"
+                    }
+                    else {
+                        error "env.sh script not found in the workspace"
+                    }
+
+                    echo "Start overriding environment variables"
+
+                    // Script paths
+                    env.SCRIPT_WORKSPACE            = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
+                    env.ENV_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/env.sh"
+                    env.BUILD_UNITY_SCRIPT_PATH     = "${env.SCRIPT_WORKSPACE}/build-main.sh"
+                    env.BUILD_IPA_SCRIPT_PATH       = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
+                    env.GDRIVE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
+                    env.AWS_S3_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
+                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
+                    
+                    // Build and DLC destinations
+                    // BUILD_DESTINATION should have been named BUILD_DESTINATION_ABSOLUTE, but its been used many times in the pipeline and scripts, will keep it for compatibility
+                    env.BUILD_DESTINATION           = "${safeWorkspace}/Build/${BUILD_NUMBER}"
+                    env.BUILD_DESTINATION_ABSOLUTE  = "${safeWorkspace}/Build/${BUILD_NUMBER}"
+                    env.DLC_DESTINATION             = "Build/${BUILD_NUMBER}/Dlc"
+                    env.DLC_DESTINATION_ABSOLUTE    = "${safeWorkspace}/${env.DLC_DESTINATION}"
+
+                    echo "Overriding environment variables completed, final environment variables:"
+                    sh 'printenv'
+                }
+            }
+        }
+
+        stage('Git Checkout') {
+            steps {
+                
+                echo "Start checking out branch: ${params.GIT_BRANCH_NAME} repo: ${env.GIT_URL} with credentials ${env.GIT_CREDENTIALS_ID}"
+                git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_URL
+                sh """
+                    git lfs pull
+                """
+            }
+        }
+        
+        stage('Build') {
+
+            steps {
+                script {
+                    def isBuildApp = (params.BUILD_APP && !params.DRY_RUN) ? "true" : "false"
+                    def isBuildDlc = (params.BUILD_DLC && !params.DRY_RUN) ? "true" : "false"
+                    def isBuildAAB = params.BUILD_AAB ? "true" : "false"
+                    def gitRevision = sh(
+                            script: "git rev-parse --short ${params.GIT_BRANCH_NAME}",
+                            returnStdout: true
+                        ).trim()
+                    
+                    sh """
+                        chmod +x ${BUILD_UNITY_SCRIPT_PATH}
+
+                        BUILD_DESTINATION=${BUILD_DESTINATION} BUILD_APP=${isBuildApp} BUILD_AAB=${isBuildAAB} RELEASE_ALIAS=${params.RELEASE_ALIAS} \
+                        DLC_DESTINATION=${DLC_DESTINATION} BUILD_DLC=${isBuildDlc} \
+                        VERSION_STRING=${params.VERSION} GIT_REVISION=${gitRevision} GIT_BRANCH=${params.GIT_BRANCH_NAME} \
+                        ${BUILD_UNITY_SCRIPT_PATH} ${BUILD_TARGET} ${ENVIRONMENT} ${BUILD_NUMBER}
+
+                    """                    
+                }
+            }
+        }
+
+        stage('Archive Artifacts') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_DLC }
+            }
+            steps {
+
+                script {
+
+                    if (params.BUILD_APP) {
+                        
+                        archiveArtifacts artifacts: [
+                                "Build/${BUILD_NUMBER}/*.apk",
+                                "Build/${BUILD_NUMBER}/*.aab",
+                                "Build/${BUILD_NUMBER}/*.symbol",
+                                "Build/${BUILD_NUMBER}/*.ipa",
+                                "Build/${BUILD_NUMBER}/*.zip"
+                            ].join(', '), fingerprint: true, allowEmptyArchive: true
+                                                
+                        
+                        if (env.GDRIVE_FOLDER_ID) {
+                            sh """
+                                chmod +x ${env.GDRIVE_UPLOAD_SCRIPT_PATH}
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.apk"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.aab"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.symbol"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.ipa"
+                            """
+                        }
+                    }
+
+                    if (params.BUILD_DLC) {
+                        archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
+                    }
+                }
+            }
+        }
+
+        stage('Upload Asset Bundles') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_DLC }
+            }
+            steps {
+                sh """
+                    chmod +x ${env.AWS_S3_UPLOAD_SCRIPT_PATH} && ${env.AWS_S3_UPLOAD_SCRIPT_PATH} "${env.DLC_DESTINATION_ABSOLUTE}"
+                """
+            }
+        }
+
+        stage ('Upload Android App Bundle') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_APP && env.GOOGLE_PLAY_ENABLE_APP_BUNDLE_UPLOAD && (params.BUILD_AAB || params.ENVIRONMENT == 'Distribution') }
+            }
+            steps {
+                sh """
+                    chmod +x ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} && ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} "internal" $BUILD_NUMBER "--draft"
+                """
+            }
+        }
+
+        stage ('XCode Archive') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_APP && env.BUILD_TARGET == 'iOS' }
+            }
+            steps {
+                sh """
+                    chmod +x "${BUILD_IPA_SCRIPT_PATH}" && "${BUILD_IPA_SCRIPT_PATH}"
+                """
+            }
+        }
+    }
+    
+    post {
+        success {            
+            echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
+            echo "Deleting build folder ${env.BUILD_DESTINATION} .."
+            sh "rm -rf ${env.BUILD_DESTINATION}"
+        }
+    }
+}
