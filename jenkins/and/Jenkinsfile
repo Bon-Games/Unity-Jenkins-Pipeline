@@ -101,49 +101,20 @@ pipeline {
                         DLC_DESTINATION=${DLC_DESTINATION} BUILD_DLC=${isBuildDlc} \
                         ${BUILD_UNITY_SCRIPT_PATH} ${BUILD_TARGET} ${ENVIRONMENT} ${BUILD_NUMBER}
 
-                    """
-
-                    if (params.BUILD_APP && env.BUILD_TARGET == 'iOS') {
-                        sh """
-                            chmod +x "${BUILD_IPA_SCRIPT_PATH}" && "${BUILD_IPA_SCRIPT_PATH}"
-                        """
-                    }
+                    """                    
                 }
             }
         }
 
-        stage('Upload Asset Bundles') {
+        stage('Archive Artifacts') {
             when {
-                expression { params.BUILD_DLC && !params.DRY_RUN }
+                expression { !params.DRY_RUN && params.BUILD_DLC }
             }
             steps {
-                sh """
-                    chmod +x ${env.AWS_S3_UPLOAD_SCRIPT_PATH} && ${env.AWS_S3_UPLOAD_SCRIPT_PATH} "${env.DLC_DESTINATION_ABSOLUTE}"
-                """
-            }
-        }
 
-        stage ('Upload Android App Bundle') {
-            when {
-                expression { (params.BUILD_AAB || params.ENVIRONMENT == 'Distribution') && !params.DRY_RUN && env.GOOGLE_PLAY_ENABLE_APP_BUNDLE_UPLOAD }
-            }
-            steps {
-                sh """
-                    chmod +x ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} && ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} "internal" $BUILD_NUMBER "--draft"
-                """
-            }
-        }
-    }
-    
-    post {
+                script {
 
-        success {
-
-            script {
-                try {
-                    echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
-
-                    if (params.BUILD_APP && !params.DRY_RUN) {
+                    if (params.BUILD_APP) {
                         
                         archiveArtifacts artifacts: [
                                 "Build/${BUILD_NUMBER}/*.apk",
@@ -165,18 +136,41 @@ pipeline {
                         }
                     }
 
-                    if (params.BUILD_DLC && !params.DRY_RUN) {
+                    if (params.BUILD_DLC) {
                         archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
                     }
                 }
-                catch (Exception e) {
-                    echo "Exception in post-success block: ${e.message}"
-                }
-                finally {
-                    echo "Deleting build folder ${env.BUILD_DESTINATION} .."
-                    sh "rm -rf ${env.BUILD_DESTINATION}"
-                }
             }
+        }
+
+        stage('Upload Asset Bundles') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_DLC }
+            }
+            steps {
+                sh """
+                    chmod +x ${env.AWS_S3_UPLOAD_SCRIPT_PATH} && ${env.AWS_S3_UPLOAD_SCRIPT_PATH} "${env.DLC_DESTINATION_ABSOLUTE}"
+                """
+            }
+        }
+
+        stage ('Upload Android App Bundle') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_APP && env.GOOGLE_PLAY_ENABLE_APP_BUNDLE_UPLOAD && (params.BUILD_AAB || params.ENVIRONMENT == 'Distribution') }
+            }
+            steps {
+                sh """
+                    chmod +x ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} && ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} "internal" $BUILD_NUMBER "--draft"
+                """
+            }
+        }
+    }
+    
+    post {
+        success {            
+            echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
+            echo "Deleting build folder ${env.BUILD_DESTINATION} .."
+            sh "rm -rf ${env.BUILD_DESTINATION}"
         }
     }
 }

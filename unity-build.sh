@@ -25,4 +25,3 @@ exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET
 -buildDestination "$BUILD_DESTINATION" -buildApp "$BUILD_APP" \
 -bundleId "$BUNDLE_ID" \
 -dlcDestination "$DLC_DESTINATION" -buildDlc "$BUILD_DLC" -buildDlcProfile "$BUILD_DLC_PROFILE"
-exit $?
