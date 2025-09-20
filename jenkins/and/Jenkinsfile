@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    options {
+        disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
+        skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
+    }
     environment {
 
         // Note: env vars declared here are **not overrideable** at runtime
@@ -10,6 +14,7 @@ pipeline {
         choice      (name: 'ENVIRONMENT'    , choices: ['Development', 'Staging', 'Release', 'Distribution'], description: 'Select the environment for the app build')
         booleanParam(name: 'BUILD_APP'      , defaultValue: true    , description: 'Do you want to make executable file (for example *.apk)? You could disable this for Build Dlc only.')
         booleanParam(name: 'BUILD_DLC'      , defaultValue: false   , description: 'Build and upload asset bundles to S3 after build')
+        booleanParam(name: 'BUILD_AAB'      , defaultValue: false   , description: 'Build Android AAB file even it isnt Distribution & Upload the AAB to Google Play Internal Testing Track')        
         string      (name: 'GIT_BRANCH_NAME', defaultValue: 'dev'   , description: 'Git branch name to checkout')
         booleanParam(name: 'DRY_RUN'        , defaultValue: false   , description: 'Do you want to run the build in dry run mode?')
     }
@@ -55,6 +60,7 @@ pipeline {
                     env.BUILD_IPA_SCRIPT_PATH       = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
                     env.GDRIVE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
                     env.AWS_S3_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
+                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
                     
                     // Build and DLC destinations
                     // BUILD_DESTINATION should have been named BUILD_DESTINATION_ABSOLUTE, but its been used many times in the pipeline and scripts, will keep it for compatibility
@@ -79,26 +85,59 @@ pipeline {
                 """
             }
         }
+        
         stage('Build') {
 
             steps {
                 script {
                     def isBuildApp = (params.BUILD_APP && !params.DRY_RUN) ? "true" : "false"
                     def isBuildDlc = (params.BUILD_DLC && !params.DRY_RUN) ? "true" : "false"
+                    def isBuildAAB = params.BUILD_AAB ? "true" : "false"
 
                     sh """
                         chmod +x ${BUILD_UNITY_SCRIPT_PATH}
 
-                        BUILD_DESTINATION=${BUILD_DESTINATION} BUILD_APP=${isBuildApp} \
+                        BUILD_DESTINATION=${BUILD_DESTINATION} BUILD_APP=${isBuildApp} BUILD_AAB=${isBuildAAB} \
                         DLC_DESTINATION=${DLC_DESTINATION} BUILD_DLC=${isBuildDlc} \
                         ${BUILD_UNITY_SCRIPT_PATH} ${BUILD_TARGET} ${ENVIRONMENT} ${BUILD_NUMBER}
 
-                    """
+                    """                    
+                }
+            }
+        }
 
-                    if (params.BUILD_APP && env.BUILD_TARGET == 'iOS') {
-                        sh """
-                            chmod +x "${BUILD_IPA_SCRIPT_PATH}" && "${BUILD_IPA_SCRIPT_PATH}"
-                        """
+        stage('Archive Artifacts') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_DLC }
+            }
+            steps {
+
+                script {
+
+                    if (params.BUILD_APP) {
+                        
+                        archiveArtifacts artifacts: [
+                                "Build/${BUILD_NUMBER}/*.apk",
+                                "Build/${BUILD_NUMBER}/*.aab",
+                                "Build/${BUILD_NUMBER}/*.symbol",
+                                "Build/${BUILD_NUMBER}/*.ipa",
+                                "Build/${BUILD_NUMBER}/*.zip"
+                            ].join(', '), fingerprint: true, allowEmptyArchive: true
+                                                
+                        
+                        if (env.GDRIVE_FOLDER_ID) {
+                            sh """
+                                chmod +x ${env.GDRIVE_UPLOAD_SCRIPT_PATH}
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.apk"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.aab"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.symbol"
+                                ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.ipa"
+                            """
+                        }
+                    }
+
+                    if (params.BUILD_DLC) {
+                        archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
                     }
                 }
             }
@@ -106,7 +145,7 @@ pipeline {
 
         stage('Upload Asset Bundles') {
             when {
-                expression { params.BUILD_DLC && !params.DRY_RUN }
+                expression { !params.DRY_RUN && params.BUILD_DLC }
             }
             steps {
                 sh """
@@ -114,43 +153,24 @@ pipeline {
                 """
             }
         }
+
+        stage ('Upload Android App Bundle') {
+            when {
+                expression { !params.DRY_RUN && params.BUILD_APP && env.GOOGLE_PLAY_ENABLE_APP_BUNDLE_UPLOAD && (params.BUILD_AAB || params.ENVIRONMENT == 'Distribution') }
+            }
+            steps {
+                sh """
+                    chmod +x ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} && ${env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH} "internal" $BUILD_NUMBER "--draft"
+                """
+            }
+        }
     }
     
     post {
-        success {
-
-            script {
-
-                if (params.BUILD_APP && !params.DRY_RUN) {
-                    
-                    archiveArtifacts artifacts: [
-                            "Build/${BUILD_NUMBER}/*.apk",
-                            "Build/${BUILD_NUMBER}/*.aab",
-                            "Build/${BUILD_NUMBER}/*.symbol",
-                            "Build/${BUILD_NUMBER}/*.ipa",
-                            "Build/${BUILD_NUMBER}/*.zip"
-                        ].join(', '), fingerprint: true, allowEmptyArchive: true
-                                            
-                    
-                    if (env.GDRIVE_FOLDER_ID) {
-                        sh """
-                            chmod +x ${env.GDRIVE_UPLOAD_SCRIPT_PATH}
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.apk"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.aab"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.symbol"
-                            ${env.GDRIVE_UPLOAD_SCRIPT_PATH} "${env.BUILD_DESTINATION}" "*.ipa"
-                        """
-                    }
-                }
-
-                if (params.BUILD_DLC && !params.DRY_RUN) {
-                    archiveArtifacts artifacts: "${DLC_DESTINATION}/**/*.*", fingerprint: true, allowEmptyArchive: false
-                }
-            }
-        }
-
-        always {
-             echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
+        success {            
+            echo "Pipeline run completed. DRY_RUN=${params.DRY_RUN}"
+            echo "Deleting build folder ${env.BUILD_DESTINATION} .."
+            sh "rm -rf ${env.BUILD_DESTINATION}"
         }
     }
 }
