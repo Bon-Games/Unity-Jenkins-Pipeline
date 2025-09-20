@@ -4,11 +4,6 @@ pipeline {
         disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
         skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
     }
-    environment {
-
-        // Note: env vars declared here are **not overrideable** at runtime
-        // You must define BUILD_TARGET in env file       
-    }
     
     parameters {
         choice      (name: 'ENVIRONMENT'    , choices: ['Development', 'Staging', 'Release', 'Distribution'], description: 'Select the environment for the app build')
