@@ -16,14 +16,14 @@ echo "Start build with params BUILD_TARGET:$BUILD_TARGET BUILD_NUMBER:$BUILD_NUM
 echo "Project path: ${WORKSPACE}"
 
 exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET_STARTUP -executeMethod BonGames.EasyBuilder.EasyBuilder.Build \
--projectPath "${WORKSPACE}" 	\
+-projectPath "${WORKSPACE}" -ci=$CI \
 -logFile - 	\
 -gitRevision "$GIT_REVISION" -gitBranch "$GIT_BRANCH" -releaseAlias "$RELEASE_ALIAS" \
 -productCode $PRODUCT_NAME_CODE \
 -ks "$KEYSTORE_PATH" -ksPassword "$KEYSTORE_PASSWORD" -alias "$KEYSTORE_ALIAS" -aliasPassword "$KEYSTORE_ALIAS_PASSWORD" \
 -iOSProvisioning $IOS_PROVISIONING_ID -iOSTeamId $IOS_DEVELOPMENT_TEAM_ID \
 -buildNumber $BUILD_NUMBER -buildVersionString $VERSION_STRING -buildEnv $BUILD_ENVIRONMENT -buildPlatformTarget $BUILD_TARGET -buildAppTarget $BUILD_APP_TARGET \
--scenes "$SCENES" -symbols "JENKINS_BUILD;$ADDITIONAL_SYMBOLS" \
+-scenes "$SCENES" -symbols "$ADDITIONAL_SYMBOLS" \
 -buildDestination "$BUILD_DESTINATION" -buildApp "$BUILD_APP" \
 -bundleId "$BUNDLE_ID" \
 -dlcDestination "$DLC_DESTINATION" -buildDlc "$BUILD_DLC" -buildDlcProfile "$BUILD_DLC_PROFILE"
