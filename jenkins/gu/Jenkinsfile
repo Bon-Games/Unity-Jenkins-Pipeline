@@ -23,7 +23,8 @@ pipeline {
                 script {
                     
                     // Fix path for windonws 
-                    def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+                    def safeWorkspace       = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+                    def safeWorkspaceTemp   = isUnix() ? env.WORKSPACE_TMP : env.WORKSPACE_TMP.replace('\\', '/')
 
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
                     def envScript = sh(returnStdout: true, script: "find ${safeWorkspace} -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
@@ -38,8 +39,9 @@ pipeline {
                         def props = readProperties file: "${safeWorkspace}/.env.temp"
                         props.each { key, value ->
                             // IMPORTANT NOTE: Environment variables in Jenkins (in environment block above) are read-only, cannot be modified directly even set here.
-                            env."${key}" = value
-                            echo "Export Variable: ${key}=${value}"
+                            def safeValue = value.replace('\\', '/')
+                            env."${key}" = safeValue
+                            echo "Export Variable: ${key}=${safeValue}"
                         }
                         echo "Reading enviroment variables completed from: ${safeWorkspace}/.env.temp"
                     }
@@ -50,13 +52,13 @@ pipeline {
                     echo "Start overriding environment variables"
 
                     // Script paths
-                    env.SCRIPT_WORKSPACE            = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
-                    env.ENV_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/env.sh"
-                    env.BUILD_UNITY_SCRIPT_PATH     = "${env.SCRIPT_WORKSPACE}/build-main.sh"
-                    env.BUILD_IPA_SCRIPT_PATH       = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
-                    env.GDRIVE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
-                    env.AWS_S3_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
-                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
+                    env.SCRIPT_WORKSPACE                    = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
+                    env.ENV_SCRIPT_PATH                     = "${env.SCRIPT_WORKSPACE}/env.sh"
+                    env.BUILD_UNITY_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/build-main.sh"
+                    env.BUILD_IPA_SCRIPT_PATH               = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
+                    env.GDRIVE_UPLOAD_SCRIPT_PATH           = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
+                    env.AWS_S3_UPLOAD_SCRIPT_PATH           = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
+                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH    = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
                     
                     // Build and DLC destinations
                     // BUILD_DESTINATION should have been named BUILD_DESTINATION_ABSOLUTE, but its been used many times in the pipeline and scripts, will keep it for compatibility
