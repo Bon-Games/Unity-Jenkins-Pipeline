@@ -123,9 +123,13 @@ pipeline {
                             ]]
                         ])
                     }
-                
+
                     def installer = "${env.SCRIPT_WORKSPACE}/install/install-easy-builder-gu.sh"
-                    sh "chmod +x ${installer} && ${installer}"
+                    sh """
+                        cd ${env.PROJECT_DIR}
+                        pwd
+                        chmod +x ${installer} && ${installer}
+                    """                    
                 }
                 
             }
@@ -134,6 +138,8 @@ pipeline {
         stage('Build') {
 
             steps {
+                
+                echo "Current workspace: ${pwd()}"
                 script {
                     def isBuildApp = (params.BUILD_APP && !params.DRY_RUN) ? "true" : "false"
                     def isBuildDlc = (params.BUILD_DLC && !params.DRY_RUN) ? "true" : "false"
