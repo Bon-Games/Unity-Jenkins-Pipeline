@@ -37,7 +37,7 @@ pipeline {
                         // Fix path for windows in the temp env file
                         def tempEnvFile = "${safeWorkspace}/.env.temp"
                         def fixed = readFile(tempEnvFile).replace('\\', '/')
-                        writeFile file: envFile, text: fixed
+                        writeFile file: tempEnvFile, text: fixed
 
                         // Override current environment variables with the ones from .env.temp
                         def props = readProperties file: tempEnvFile
