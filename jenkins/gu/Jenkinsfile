@@ -34,13 +34,13 @@ pipeline {
                         sh """ 
                             chmod +x "${envScript}" && WORKSPACE="${safeWorkspace}" "${envScript}" ${env.ENVIRONMENT}
                         """
-
-                        def envFile = "${safeWorkspace}/.env.temp"
-                        def fixed = readFile(envFile).replace('\\', '/')
+                        // Fix path for windows in the temp env file
+                        def tempEnvFile = "${safeWorkspace}/.env.temp"
+                        def fixed = readFile(tempEnvFile).replace('\\', '/')
                         writeFile file: envFile, text: fixed
 
                         // Override current environment variables with the ones from .env.temp
-                        def props = readProperties file: "${safeWorkspace}/.env.temp"
+                        def props = readProperties file: tempEnvFile
                         props.each { key, value ->
                             // IMPORTANT NOTE: Environment variables in Jenkins (in environment block above) are read-only, cannot be modified directly even set here.
                             def safeValue = value.replace('\\', '/')
@@ -70,6 +70,12 @@ pipeline {
                     env.BUILD_DESTINATION_ABSOLUTE  = "${safeWorkspace}/Build/${BUILD_NUMBER}"
                     env.DLC_DESTINATION             = "Build/${BUILD_NUMBER}/Dlc"
                     env.DLC_DESTINATION_ABSOLUTE    = "${safeWorkspace}/${env.DLC_DESTINATION}"
+
+                    // Fix: bash.exe: warning: could not find /tmp, please create!
+                    if (!isUnix()) {
+                        env.TEMP    = "${safeWorkspaceTemp}"
+                        env.TMP     = "${safeWorkspaceTemp}"
+                    }
 
                     echo "Overriding environment variables completed, final environment variables:"
                     sh 'printenv'
