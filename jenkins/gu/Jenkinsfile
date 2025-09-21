@@ -36,7 +36,7 @@ pipeline {
                         """
 
                         def envFile = "${safeWorkspace}/.env.temp"
-                        def fixed = readFile(envFile).replaceAll('\\', '/')
+                        def fixed = readFile(envFile).replace('\\', '/')
                         writeFile file: envFile, text: fixed
 
                         // Override current environment variables with the ones from .env.temp
