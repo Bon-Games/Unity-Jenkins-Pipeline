@@ -11,12 +11,15 @@ mkdir -p "$(dirname "$LOG_FILE")"
 
 echo "This script is executing on $OSTYPE with environment variables"
 printenv
+if [[ -z $PROJECT_DIR ]]; then
+    PROJECT_DIR=$WORKSPACE
+fi
 
 echo "Start build with params BUILD_TARGET:$BUILD_TARGET BUILD_NUMBER:$BUILD_NUMBER BUILD_ENVIRONMENT:$BUILD_ENVIRONMENT BUILD_APP_TARGET:$BUILD_APP_TARGET BUILD_TARGET_STARTUP:$BUILD_TARGET_STARTUP"
-echo "Project path: ${WORKSPACE}"
+echo "Project path: ${PROJECT_DIR}"
 
 exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET_STARTUP -executeMethod BonGames.EasyBuilder.EasyBuilder.Build \
--projectPath "${WORKSPACE}" -ci=$CI \
+-projectPath "${PROJECT_DIR}" -ci=$CI \
 -logFile - 	\
 -gitRevision "$GIT_REVISION" -gitBranch "$GIT_BRANCH" -releaseAlias "$RELEASE_ALIAS" \
 -productCode $PRODUCT_NAME_CODE \

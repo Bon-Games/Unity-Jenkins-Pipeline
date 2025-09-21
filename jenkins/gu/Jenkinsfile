@@ -56,6 +56,7 @@ pipeline {
                     echo "Start overriding environment variables"
 
                     // Script paths
+                    env.PROJECT_DIR_RELATIVE                = "Project"
                     env.SCRIPT_WORKSPACE                    = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
                     env.ENV_SCRIPT_PATH                     = "${env.SCRIPT_WORKSPACE}/env.sh"
                     env.BUILD_UNITY_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/build-main.sh"
@@ -70,6 +71,7 @@ pipeline {
                     env.BUILD_DESTINATION_ABSOLUTE  = "${safeWorkspace}/Build/${BUILD_NUMBER}"
                     env.DLC_DESTINATION             = "Build/${BUILD_NUMBER}/Dlc"
                     env.DLC_DESTINATION_ABSOLUTE    = "${safeWorkspace}/${env.DLC_DESTINATION}"
+                    env.PROJECT_DIR                 = "${safeWorkspace}/${env.PROJECT_DIR_RELATIVE}"                    
 
                     // Fix: bash.exe: warning: could not find /tmp, please create!
                     if (!isUnix()) {
@@ -99,7 +101,7 @@ pipeline {
                             reference: '',
                             trackingSubmodules: false
                         ],
-                        [$class: 'RelativeTargetDirectory', relativeTargetDir: 'Project']
+                        [$class: 'RelativeTargetDirectory', relativeTargetDir: env.PROJECT_DIR_RELATIVE ]
                     ],
                     userRemoteConfigs: [[
                         credentialsId: env.GIT_CREDENTIALS_ID,
@@ -114,7 +116,7 @@ pipeline {
                         checkout([$class: 'GitSCM',
                             branches: [[name: params.GIT_BRANCH_NAME]],
                             doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'GitLFSPull'], [$class: 'RelativeTargetDirectory', relativeTargetDir: 'Project']],
+                            extensions: [[$class: 'GitLFSPull'], [$class: 'RelativeTargetDirectory', relativeTargetDir: env.PROJECT_DIR_RELATIVE ]],
                             userRemoteConfigs: [[
                                 credentialsId: env.GIT_CREDENTIALS_ID,
                                 url: env.GIT_REPO_URL
