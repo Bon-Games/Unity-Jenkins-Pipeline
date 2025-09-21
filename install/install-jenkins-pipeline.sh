@@ -7,11 +7,4 @@ if [[ ! -d "Assets" || ! -d "ProjectSettings" || ! -d "Packages" ]]; then
     exit 1
 fi
 
-git submodule add -b master https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD
-
-if [ "${SUPPRESS_INIT:-}" != "true" ]; then
-    git submodule sync --recursive
-    git submodule update --init --recursive
-fi
-
-exit $?
+./install-git-submodule.sh https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD master

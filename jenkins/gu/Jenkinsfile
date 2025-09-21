@@ -106,7 +106,6 @@ pipeline {
                     ]]
                 ])
                 
-
                 script {
 
                     if (env.GIT_LFS_ENABLED == true) {
@@ -121,9 +120,11 @@ pipeline {
                             ]]
                         ])
                     }
+                
+                    def installer = "${env.SCRIPT_WORKSPACE}/install/install-easy-builder-gu.sh"
+                    chmod +x ${installer} && installer
                 }
-
-                // Install Easy Builder
+                
             }
         }
         
@@ -135,7 +136,7 @@ pipeline {
                     def isBuildDlc = (params.BUILD_DLC && !params.DRY_RUN) ? "true" : "false"
                     def isBuildAAB = params.BUILD_AAB ? "true" : "false"
                     def gitRevision = sh(
-                            script: "git rev-parse --short ${params.GIT_BRANCH_NAME}",
+                            script: "git rev-parse --short HEAD",
                             returnStdout: true
                         ).trim()
                     

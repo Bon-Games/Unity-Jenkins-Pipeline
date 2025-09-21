@@ -8,7 +8,7 @@ if [[ ! -d "Assets" || ! -d "ProjectSettings" || ! -d "Packages" ]]; then
 fi
 
 SUPPRESS_INIT=true ./install-easy-builder.sh
-SUPPRESS_INIT=true ./install-Jenkins-Pipeline.sh
+SUPPRESS_INIT=true ./install-jenkins-pipeline.sh
 
 git submodule sync --recursive
 git submodule update --init --recursive
