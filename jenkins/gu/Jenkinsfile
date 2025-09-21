@@ -98,7 +98,8 @@ pipeline {
                             recursiveSubmodules: true,
                             reference: '',
                             trackingSubmodules: false
-                        ]
+                        ],
+                        [$class: 'RelativeTargetDirectory', relativeTargetDir: 'Project']
                     ],
                     userRemoteConfigs: [[
                         credentialsId: env.GIT_CREDENTIALS_ID,
@@ -113,7 +114,7 @@ pipeline {
                         checkout([$class: 'GitSCM',
                             branches: [[name: params.GIT_BRANCH_NAME]],
                             doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'GitLFSPull']],
+                            extensions: [[$class: 'GitLFSPull'], [$class: 'RelativeTargetDirectory', relativeTargetDir: 'Project']],
                             userRemoteConfigs: [[
                                 credentialsId: env.GIT_CREDENTIALS_ID,
                                 url: env.GIT_REPO_URL
@@ -122,7 +123,7 @@ pipeline {
                     }
                 
                     def installer = "${env.SCRIPT_WORKSPACE}/install/install-easy-builder-gu.sh"
-                    chmod +x ${installer} && installer
+                    chmod +x ${installer} && ${installer}
                 }
                 
             }
