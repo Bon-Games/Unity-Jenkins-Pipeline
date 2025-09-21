@@ -7,4 +7,4 @@ if [[ ! -d "Assets" || ! -d "ProjectSettings" || ! -d "Packages" ]]; then
     exit 1
 fi
 
-./install-git-submodule.sh https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD master
+"$SCRIPT_WORKSPACE/install/install-git-submodule.sh" https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD master
