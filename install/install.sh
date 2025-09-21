@@ -7,8 +7,10 @@ if [[ ! -d "Assets" || ! -d "ProjectSettings" || ! -d "Packages" ]]; then
     exit 1
 fi
 
-git submodule add -b master git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git Packages/BuildCICD
-git submodule add -b master git@github.com:Bon-Games/Build-Tools.git Assets/BonGames.Tools
+SUPPRESS_INIT=true ./install-easy-builder.sh
+SUPPRESS_INIT=true ./install-Jenkins-Pipeline.sh
+
+git submodule sync --recursive
 git submodule update --init --recursive
 
 exit $?
