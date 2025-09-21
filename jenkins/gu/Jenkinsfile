@@ -2,7 +2,7 @@ pipeline {
     agent any
     options {
         disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
-        skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
+        // skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
     }
     
     parameters {
