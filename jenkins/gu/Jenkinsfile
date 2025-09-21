@@ -87,10 +87,12 @@ pipeline {
             steps {
                 
                 echo "Start checking out branch: ${params.GIT_BRANCH_NAME} repo: ${env.GIT_URL} with credentials ${env.GIT_CREDENTIALS_ID}"
-                git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_URL
+                git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_REPO_URL
                 sh """
                     git lfs pull
                 """
+
+                // Install Easy Builder
             }
         }
         
