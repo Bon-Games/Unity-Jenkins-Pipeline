@@ -35,6 +35,10 @@ pipeline {
                             chmod +x "${envScript}" && WORKSPACE="${safeWorkspace}" "${envScript}" ${env.ENVIRONMENT}
                         """
 
+                        def envFile = "${safeWorkspace}/.env.temp"
+                        def fixed = readFile(envFile).replaceAll('\\', '/')
+                        writeFile file: envFile, text: fixed
+
                         // Override current environment variables with the ones from .env.temp
                         def props = readProperties file: "${safeWorkspace}/.env.temp"
                         props.each { key, value ->
