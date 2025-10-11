@@ -1,70 +1,114 @@
-# Unity-Jenkins-Pipeline
-- Jenkins pipeline for a Unity Project
+# 🚀 Unity-Jenkins-Pipeline
 
-## Dependencies
-- [Bon Games Unity SDK](https://github.com/Bon-Games/BonGames-Unity-SDK.git)
+A comprehensive Jenkins pipeline designed for building and deploying Unity projects across multiple platforms.
 
-## Install Option 1
-1. Open Bash at Unity project root where Assets folder is located
-2. Run `bash <(curl -fsSL https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh)`
+---
 
-## Install as Git submodule
-1. Open Bash at Unity project root where Assets folder is located
-2. git submodule add https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
+## ✨ Features
 
-# Features
-## Support to build
-- Build Android
-- Build iOS
-- Unity Addressables
+- **Multi-Platform Builds**: Build for Android, iOS, and Desktop with environment-specific configurations.
+- **Addressables Support**: Build Unity Addressables alongside your main application.
+- **iOS Deployment**: Upload builds directly to TestFlight.
+- **Android Deployment**: Upload builds directly to the Google Play Console.
+- **Share to Google Drive**: Upload executables to Google Drive.
+- **Asset Delivery**: Upload Addressables, DLC, or Asset Bundles to AWS S3.
 
-## Support Environment Specified
-- To use the environment specified feature, you have to create at least one of these below files and put it root of Jenkins workspace
-  - **Development** .env.development
-  - **Staging** .env.staging
-  - **Release** .env.release
-  - **Distribution** .env.distribution
-- See all supported templates at [templates](./templates)
-- See all supported variables at [Environment Variables](./docs/EnvironmentVariables.md)
+---
 
-## Support Agent
-- Windows OS
-- Mac OS
+## 🔗 Dependencies
 
-# Cheat sheet
-## Requirements
-- Keep in mind, your're stading at BuildCICD/.. (1 directory up)
-- Use bash terminal or whatever can run shell script
-- Install [AWS S3 Cli](https://github.com/aws/aws-cli) and Credentials
-- Install [GDrive Cli](https://github.com/glotlabs/gdrive) and Credentials
+* [Bon Games Unity SDK](https://github.com/Bon-Games/BonGames-Unity-SDK.git)
 
-## To test build locally
+---
 
-1. [Android] chmod +x ./build-and.sh && UNITY_EXECUTABLE="C:\Program Files\Unity\Hub\Editor\2022.3.50f1\Editor/Unity.exe" SCRIPT_WORKSPACE="." BUILD_APP=true DLC_DESTINATION="Build/DlcRoot" BUILD_DLC=true ./build-and.sh Development 1 > log.txt
+## 💻 Build Machine Requirements
 
-## Setup
-1. Navigate to Unity's Packages folder
-2. git clone git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
-2.1 Add submodule git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git in Packages folder
+### Credentials
+* **(Required for iOS)** Your macOS machine must have the necessary Apple Developer certificates and provisioning profiles installed to sign iOS builds.
 
+### Jenkins Plugins
+* **(Required)** **Pipeline Utility Steps**: `2.19.0`.
 
+### Optional Command-Line Tools
+* **AWS CLI**: Required for uploading assets to AWS S3.
+    * Install from the [official AWS CLI documentation](https://aws.amazon.com/cli/).
+    * Ensure your credentials are configured correctly.
+* **gdrive CLI**: Required for uploading builds to Google Drive.
+    * Install from the [gdrive GitHub repository](https://github.com/glotlabs/gdrive).
+    * Ensure your credentials are configured correctly.
+* **Codemagic CLI Tools**: Required for uploading builds to the Google Play Console.
+    * See the [Codemagic CLI Tools Readme](./codemagic/Readme.md) for setup instructions.
 
-# Jenkins Plugins
-1. Pipeline Utility Steps : 2.19.0
+---
 
-# Jenkins Setup
-## Agent Configuration
-1. At Definition field of Pipeline section, choose `Pipeline Script from SCM`
-2. Fill out the fields
-3. Add `Advanced sub-modules behaviours` then enable `Recursively update submodules` and `Use credentials from default remote of parent repository` options. Enable `Shallow clone`, set its value to 1.
+## 🚀Plugin installation into Unity Project
 
-## Windows
-### Set Shell executable path
-1. Open Jenkins -> Manage Jenkins -> System -> Shell executable
-2. Paste "C:\Program Files\Git\bin\sh.exe" or whatever you have for Shell executable
+### Option 1: Install Pipeline and BonGames Unity SDK
+1.  In your terminal, navigate to the root directory of your Unity project (the one containing the `Assets` folder).
+2.  Run the following command:
+    ```bash
+    bash <(curl -fsSL [https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh](https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh))
+    ```
 
+### Option 2: Install Pipeline Only (If BonGames SDK is already installed)
+1.  In your terminal, navigate to the root directory of your Unity project.
+2.  Run the following command:
+    ```bash
+    bash <(curl -fsSL [https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install-jenkins-pipeline.sh](https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install-jenkins-pipeline.sh))
+    ```
 
-# Jenkins Troubleshoot
-**Error:** Failed to connect to repository : Command "git.exe ls-remote -h -- git@github.com:.. HEAD" returned status code 128: stdout: stderr: No ED25519 host key is known for github.com and you have requested strict checking.
+### 📌 Important Notes
+* All shell commands should be executed from the **root of your Unity project**.
+* These scripts are designed for a `bash`-compatible shell (like Git Bash on Windows or the default terminal on macOS/Linux).
 
-**Fix** Run `ssh-keyscan github.com >> ~/.ssh/known_hosts`
+---
+
+## ⚙️ Environment-Specific Builds
+To enable environment-specific configurations, create one or more of the following `.env` files in the **root of your Jenkins workspace**:
+
+* **Development**: `.env.development`
+* **Staging**: `.env.staging`
+* **Release**: `.env.release`
+* **Distribution**: `.env.distribution`
+
+You can find templates for these files in the [Templates](./templates) directory. For a complete list of supported variables, please refer to the [Environment Variables documentation](./docs/EnvironmentVariables.md).
+
+---
+
+## 🛠️ Supported Agents
+
+* Windows OS
+* macOS
+
+---
+
+## 🔧 Jenkins Setup
+
+### Pipeline Configuration
+1.  In your Jenkins pipeline job configuration, under the **Pipeline** section, set the **Definition** to `Pipeline script from SCM`.
+2.  Configure your SCM (e.g., Git) and provide the repository URL and credentials.
+3.  In the **Behaviors** section, add `Advanced sub-module behaviours` and configure it as follows:
+    * Enable `Recursively update submodules`.
+    * Enable `Use credentials from default remote of parent repository`.
+4.  (Optional) To speed up checkout, add a `Shallow clone` behavior and set the **Shallow clone depth** to `1`.
+
+### Windows Agent Setup
+#### Configure the Shell Executable
+1.  Navigate to **Manage Jenkins > System**.
+2.  Find the **Shell** section.
+3.  In the **Shell executable** field, provide the path to your `sh.exe`, for example:
+    ```
+    C:\Program Files\Git\bin\sh.exe
+    ```
+
+---
+
+## 🔍 Troubleshooting
+
+### Error: Host Key Verification Failed
+**Error Message:**
+Failed to connect to repository : Command "git.exe ls-remote -h -- git@github.com:.. HEAD" returned status code 128: stdout: stderr: No ED25519 host key is known for github.com and you have requested strict checking.
+**Solution:**
+This error occurs because the Jenkins agent does not trust the host key for `github.com`. Run the following command on your Jenkins agent machine to add the key to its list of known hosts:
+```bash
+ssh-keyscan github.com >> ~/.ssh/known_hosts

@@ -1,5 +1,5 @@
-# Install
-https://github.com/codemagic-ci-cd/cli-tools?tab=readme-ov-file#installing
+# Installation
+[Codemagic CICD Installation](https://github.com/codemagic-ci-cd/cli-tools?tab=readme-ov-file#installing)
 
 # Troubleshoot
 ## Error: Only releases with status draft may be created on draft app
