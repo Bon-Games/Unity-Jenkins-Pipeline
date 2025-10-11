@@ -108,6 +108,7 @@ You can find templates for these files in the [Templates](./templates) directory
 ### Error: Host Key Verification Failed
 **Error Message:**
 Failed to connect to repository : Command "git.exe ls-remote -h -- git@github.com:.. HEAD" returned status code 128: stdout: stderr: No ED25519 host key is known for github.com and you have requested strict checking.
+
 **Solution:**
 This error occurs because the Jenkins agent does not trust the host key for `github.com`. Run the following command on your Jenkins agent machine to add the key to its list of known hosts:
 ```bash
