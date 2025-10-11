@@ -47,14 +47,14 @@ A comprehensive Jenkins pipeline designed for building and deploying Unity proje
 1.  In your terminal, navigate to the root directory of your Unity project (the one containing the `Assets` folder).
 2.  Run the following command:
     ```bash
-    bash <(curl -fsSL [https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh](https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh))
+    bash <(curl -fsSL https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh)
     ```
 
 ### Option 2: Install Pipeline Only (If BonGames SDK is already installed)
 1.  In your terminal, navigate to the root directory of your Unity project.
 2.  Run the following command:
     ```bash
-    bash <(curl -fsSL [https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install-jenkins-pipeline.sh](https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install-jenkins-pipeline.sh))
+    bash <(curl -fsSL https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install-jenkins-pipeline.sh)
     ```
 
 ### 📌 Important Notes
