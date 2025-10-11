@@ -16,7 +16,7 @@ echo "Start build with params BUILD_TARGET:$BUILD_TARGET BUILD_NUMBER:$BUILD_NUM
 echo "Project path: ${WORKSPACE}"
 
 exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET_STARTUP -executeMethod BonGames.EasyBuilder.EasyBuilder.Build \
--projectPath "${WORKSPACE}" 	\
+-projectPath "${WORKSPACE}" -ci=$CI \
 -logFile - 	\
 -gitRevision "$GIT_REVISION" -gitBranch "$GIT_BRANCH" -releaseAlias "$RELEASE_ALIAS" \
 -productCode $PRODUCT_NAME_CODE \

@@ -2,7 +2,7 @@ pipeline {
     agent any
     options {
         disableConcurrentBuilds() // Prevents concurrent builds of this pipeline
-        skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
+        // skipDefaultCheckout() // Skip default scm checkout as this pipeline will do itself
     }
     
     parameters {
@@ -23,23 +23,29 @@ pipeline {
                 script {
                     
                     // Fix path for windonws 
-                    def safeWorkspace = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+                    def safeWorkspace       = isUnix() ? env.WORKSPACE : env.WORKSPACE.replace('\\', '/')
+                    def safeWorkspaceTemp   = isUnix() ? env.WORKSPACE_TMP : env.WORKSPACE_TMP.replace('\\', '/')
 
                     // Trick: To make this dynamic with any folder name (by default it should be BuildCICD but it can be changed), find env.sh script
-                    def envScript = sh(returnStdout: true, script: "find ${WORKSPACE} -maxdepth 2 -type f -name 'env.sh' | head -n 1").trim()
+                    def envScript = sh(returnStdout: true, script: "find ${safeWorkspace} -maxdepth 3 -type f -name 'env.sh' | head -n 1").trim()
                     if (envScript) {
                         
                         // Create temp env file at {safeWorkspace}/.env.temp
                         sh """ 
                             chmod +x "${envScript}" && WORKSPACE="${safeWorkspace}" "${envScript}" ${env.ENVIRONMENT}
                         """
+                        // Fix path for windows in the temp env file
+                        def tempEnvFile = "${safeWorkspace}/.env.temp"
+                        def fixed = readFile(tempEnvFile).replace('\\', '/')
+                        writeFile file: tempEnvFile, text: fixed
 
                         // Override current environment variables with the ones from .env.temp
-                        def props = readProperties file: "${safeWorkspace}/.env.temp"
+                        def props = readProperties file: tempEnvFile
                         props.each { key, value ->
                             // IMPORTANT NOTE: Environment variables in Jenkins (in environment block above) are read-only, cannot be modified directly even set here.
-                            env."${key}" = value
-                            echo "Export Variable: ${key}=${value}"
+                            def safeValue = value.replace('\\', '/')
+                            env."${key}" = safeValue
+                            echo "Export Variable: ${key}=${safeValue}"
                         }
                         echo "Reading enviroment variables completed from: ${safeWorkspace}/.env.temp"
                     }
@@ -50,13 +56,13 @@ pipeline {
                     echo "Start overriding environment variables"
 
                     // Script paths
-                    env.SCRIPT_WORKSPACE            = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
-                    env.ENV_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/env.sh"
-                    env.BUILD_UNITY_SCRIPT_PATH     = "${env.SCRIPT_WORKSPACE}/build-main.sh"
-                    env.BUILD_IPA_SCRIPT_PATH       = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
-                    env.GDRIVE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
-                    env.AWS_S3_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
-                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH   = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
+                    env.SCRIPT_WORKSPACE                    = "${safeWorkspace}/${env.CICD_PIPELINE_HOME}"
+                    env.ENV_SCRIPT_PATH                     = "${env.SCRIPT_WORKSPACE}/env.sh"
+                    env.BUILD_UNITY_SCRIPT_PATH             = "${env.SCRIPT_WORKSPACE}/build-main.sh"
+                    env.BUILD_IPA_SCRIPT_PATH               = "${env.SCRIPT_WORKSPACE}/build-ipa.sh"
+                    env.GDRIVE_UPLOAD_SCRIPT_PATH           = "${env.SCRIPT_WORKSPACE}/gdrive-cli/gdrive-upload-file.sh"
+                    env.AWS_S3_UPLOAD_SCRIPT_PATH           = "${env.SCRIPT_WORKSPACE}/aws/aws-s3-upload.sh"
+                    env.GG_APP_BUNDLE_UPLOAD_SCRIPT_PATH    = "${env.SCRIPT_WORKSPACE}/codemagic/google-store/upload-app-bundle.sh"
                     
                     // Build and DLC destinations
                     // BUILD_DESTINATION should have been named BUILD_DESTINATION_ABSOLUTE, but its been used many times in the pipeline and scripts, will keep it for compatibility
@@ -64,6 +70,12 @@ pipeline {
                     env.BUILD_DESTINATION_ABSOLUTE  = "${safeWorkspace}/Build/${BUILD_NUMBER}"
                     env.DLC_DESTINATION             = "Build/${BUILD_NUMBER}/Dlc"
                     env.DLC_DESTINATION_ABSOLUTE    = "${safeWorkspace}/${env.DLC_DESTINATION}"
+
+                    // Fix: bash.exe: warning: could not find /tmp, please create!
+                    if (!isUnix()) {
+                        env.TEMP    = "${safeWorkspaceTemp}"
+                        env.TMP     = "${safeWorkspaceTemp}"
+                    }
 
                     echo "Overriding environment variables completed, final environment variables:"
                     sh 'printenv'
@@ -74,11 +86,44 @@ pipeline {
         stage('Git Checkout') {
             steps {
                 
-                echo "Start checking out branch: ${params.GIT_BRANCH_NAME} repo: ${env.GIT_URL} with credentials ${env.GIT_CREDENTIALS_ID}"
-                git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_URL
-                sh """
-                    git lfs pull
-                """
+                echo "Start checking out branch: ${params.GIT_BRANCH_NAME} repo: ${env.GIT_REPO_URL} with credentials ${env.GIT_CREDENTIALS_ID}"
+                // git branch: params.GIT_BRANCH_NAME, changelog: true, credentialsId: env.GIT_CREDENTIALS_ID, poll: false, url: env.GIT_REPO_URL
+                checkout([$class: 'GitSCM',
+                    branches: [[name: params.GIT_BRANCH_NAME]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [
+                        [$class: 'SubmoduleOption',
+                            disableSubmodules: false,
+                            parentCredentials: true,
+                            recursiveSubmodules: true,
+                            reference: '',
+                            trackingSubmodules: false
+                        ]
+                    ],
+                    userRemoteConfigs: [[
+                        credentialsId: env.GIT_CREDENTIALS_ID,
+                        url: env.GIT_REPO_URL
+                    ]]
+                ])
+                
+
+                script {
+
+                    if (env.GIT_LFS_ENABLED == true) {
+
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: params.GIT_BRANCH_NAME]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'GitLFSPull']],
+                            userRemoteConfigs: [[
+                                credentialsId: env.GIT_CREDENTIALS_ID,
+                                url: env.GIT_REPO_URL
+                            ]]
+                        ])
+                    }
+                }
+
+                // Install Easy Builder
             }
         }
         
