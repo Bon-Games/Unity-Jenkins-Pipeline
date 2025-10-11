@@ -26,4 +26,5 @@ exec "$UNITY_EXECUTABLE" -batchmode -quit -nographics -buildTarget $BUILD_TARGET
 -scenes "$SCENES" -symbols "$ADDITIONAL_SYMBOLS" \
 -buildDestination "$BUILD_DESTINATION" -buildApp "$BUILD_APP" \
 -bundleId "$BUNDLE_ID" \
--dlcDestination "$DLC_DESTINATION" -buildDlc "$BUILD_DLC" -buildDlcProfile "$BUILD_DLC_PROFILE"
+-dlcDestination "$DLC_DESTINATION" -buildDlc "$BUILD_DLC" -buildDlcProfile "$BUILD_DLC_PROFILE" \
+-preProcessorsBuild "$PRE_PROCESSORS_BUILD" -postProcessorsBuild "$POST_PROCESSORS_BUILD"

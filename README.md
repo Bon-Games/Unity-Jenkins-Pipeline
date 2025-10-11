@@ -2,15 +2,15 @@
 - Jenkins pipeline for a Unity Project
 
 ## Dependencies
-- [Bon Games Build Tools](https://github.com/Bon-Games/Build-Tools)
+- [Bon Games Unity SDK](https://github.com/Bon-Games/BonGames-Unity-SDK.git)
 
 ## Install Option 1
 1. Open Bash at Unity project root where Assets folder is located
 2. Run `bash <(curl -fsSL https://raw.githubusercontent.com/Bon-Games/Unity-Jenkins-Pipeline/refs/heads/master/install/install.sh)`
 
-## Install Option 2
-1. Navigate to Unity's Packages folder
-2. git clone git@github.com:Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
+## Install as Git submodule
+1. Open Bash at Unity project root where Assets folder is located
+2. git clone https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
 
 # Features
 ## Support to build
@@ -24,8 +24,8 @@
   - **Staging** .env.staging
   - **Release** .env.release
   - **Distribution** .env.distribution
-- See all supported templates at [templates](https://github.com/Bon-Games/Unity-Jenkins-Pipeline/tree/master/templates)
-- See all supported variables at [Environment Variables](https://github.com/Bon-Games/Unity-Jenkins-Pipeline/tree/master/docs/EnvironmentVariables.md)
+- See all supported templates at [templates](./templates)
+- See all supported variables at [Environment Variables](./docs/EnvironmentVariables.md)
 
 ## Support Agent
 - Windows OS
