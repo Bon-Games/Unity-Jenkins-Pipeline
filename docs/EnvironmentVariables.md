@@ -12,6 +12,8 @@ This table provides a detailed explanation of the environment variables used in 
 | `UNITY_EDITOR_REVISION_WINDOWS` | Unity General | Path to the Unity Editor installation on Windows. | `C:/Program Files/Unity/Hub/Editor` | |
 | `UNITY_VERSION` | Unity General | The specific Unity Editor version to be used for builds. | `2022.3.50f1` | |
 | `BUILD_TARGET` | Unity Build | The target platform for the build. | `Android`, `iOS` | Acceptable values are `Android` and `iOS`. |
+| `PRE_PROCESSORS_BUILD` | Unity Build | Name of Scriptable Object in Unity Project that contains configuration for pre-processor build. | `PreProcessorsBuild` | |
+| `POST_PROCESSORS_BUILD` | Unity Build | TName of Scriptable Object in Unity Project that contains configuration for post-processor build. | `PostProcessorsBuild` | |
 | `PRODUCT_NAME_CODE` | Product | A code name for the product, which will be part of the executable file name. | `project-code-name` | |
 | `BUNDLE_ID` | Product | The unique bundle identifier for the application. | `com.example.project` | |
 | `KEYSTORE_PATH` | Android | Relative path to the Android keystore file. | `BuildInfomation/And/keystore.ks` | |
