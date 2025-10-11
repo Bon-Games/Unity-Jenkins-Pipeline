@@ -7,7 +7,7 @@ if [[ ! -d "Assets" || ! -d "ProjectSettings" || ! -d "Packages" ]]; then
     exit 1
 fi
 
-git submodule add -b master https://github.com/Bon-Games/Build-Tools.git Packages/EasyBuilder
+git submodule add -b master https://github.com/Bon-Games/BonGames-Unity-SDK.git Packages/BonGames-Unity-SDK
 
 if [ "${SUPPRESS_INIT:-}" != "true" ]; then
     git submodule sync --recursive

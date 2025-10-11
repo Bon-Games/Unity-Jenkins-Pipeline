@@ -10,7 +10,7 @@
 
 ## Install as Git submodule
 1. Open Bash at Unity project root where Assets folder is located
-2. git clone https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
+2. git submodule add https://github.com/Bon-Games/Unity-Jenkins-Pipeline.git BuildCICD --depth 1 --branch master --recursive
 
 # Features
 ## Support to build
